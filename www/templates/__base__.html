@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!--
+{% macro pagination(url, page) %}
+    <ul class="uk-pagination">
+        {% if page.has_previous %}
+            <li><a href="{{ url }}{{ page.page_index - 1 }}"><i class="uk-icon-angle-double-left"></i></a></li>
+        {% else %}
+            <li class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+        {% endif %}
+            <li class="uk-active"><span>{{ page.page_index }}</span></li>
+        {% if page.has_next %}
+            <li><a href="{{ url }}{{ page.page_index + 1 }}"><i class="uk-icon-angle-double-right"></i></a></li>
+        {% else %}
+            <li class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+        {% endif %}
+    </ul>
+{% endmacro %}
+-->
+<html>
+<head>
+    <meta charset="utf-8"  />
+    {% block meta %}<!--block meta -->{% endblock %}    <!-- 用于子页面定义一些meta，例如rss feed -->
+    <title>{% block title %} ? {% endblock %} - Awesome Python Webapp</title>   <!-- 覆盖页面的标题 -->
+    <link rel="stylesheet" href='/static/css/uikit.min.css'>         <!-- link标签用于链接到外部样式表 -->
+    <link rel="stylesheet" href="/static/css/uikit.gradient.min.css">
+    <link rel="stylesheet" href="/static/css/awesome.css" />
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/sha1.min.js"></script>
+    <script src="/static/js/uikit.min.js"></script>
+    <script src="/static/js/sticky.min.js"></script>
+    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js/awesome.js"></script>
+    {% block beforehead %}<!-- before head  -->{% endblock %}   <!-- 子页面可以在<head>标签关闭前插入JavaScript代码 -->
+</head>
+
+<body>
+
+    <nav class="uk-navbar uk-navbar-attached uk-margin-bottom">  <!--用于导航栏式样：固定，底色 -->
+        <div class="uk-container uk-container-center">  <!--用于导航栏居中 -->
+            <a href="/" class="uk-navbar-brand">Awesome</a>   <!--用于导航栏大名称 -->
+            <ul class="uk-navbar-nav">       <!--用于导航栏内容式样 -->
+                <li data-url="blogs"><a href="/"><i class="uk-icon-home"></i> 日志</a></li>
+                <li><a target="_blank" href="http://www.baidu.com"><i class="uk-icon-book"></i> 教程</a></li>
+                <li><a target="_blank" href="https://github.com/chchleung"><i class="uk-icon-code"></i> 源码</a></li>
+            </ul>
+            <div class="uk-navbar-flip">    <!--用于导航栏内容靠右边 -->
+                <ul class="uk-navbar-nav">
+                {% if __user__ %}
+                    <li class="uk-parent" data-uk-dropdown>
+                        <a href="#0"><i class="uk-icon-user"></i> {{ __user__.name }}</a>
+                        <div class="uk-dropdown uk-dropdown-navbar">
+                            <ul class="uk-nav uk-nav-navbar">
+                                <li><a href="/signout"><i class="uk-icon-sign-out"></i> 登出</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                {% else %}
+                    <li><a href="/signin"><i class="uk-icon-sign-in"></i> 登陆</a></li>
+                    <li><a href="/register"><i class="uk-icon-edit"></i> 注册</a></li>
+                {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+
+    <div class="uk-container uk-container-center">       <!-- 用于子页面的内容居中 -->
+        <div class="uk-grid">        <!-- 用于子页面的内容排布 -->
+            <!-- content -->
+            {% block content %}      <!-- 子页面的content布局和内容 -->
+            {% endblock %}
+            <!-- // content -->
+        </div>
+    </div>
+
+
+
+    <div class="uk-margin-large-top" style="background-color:#eee; border-top:1px solid #ccc;">   <!-- 用于底部背景 -->
+        <div class="uk-container uk-container-center uk-text-center">  <!-- 用于底部内容居中 -->
+            <div class="uk-panel uk-margin-top uk-margin-bottom">     <!-- 用于底部内容上下边界 -->
+                <p>
+                    <a target="_blank" href="http://weibo.com/fenchong" class="uk-icon-button uk-icon-weibo"></a>
+                    <a target="_blank" href="https://github.com/chchleung" class="uk-icon-button uk-icon-github"></a>
+                    <a target="_blank" href="http://www.linkedin.com/in/liangzhichong" class="uk-icon-button uk-icon-linkedin-square"></a>
+                    <a target="_blank" href="https://www.facebook.com/zhichong.leung" class="uk-icon-button uk-icon-facebook"></a>
+                </p>
+                <p>Powered by <a href="http://awesome.chchlueng.com">Awesome Python Webapp</a>. Copyright &copy; 2014. [<a href="/manage/" target="_blank">Manage</a>]</p>
+                <p><a href="http://www.chchleung.com/" target="_blank">www.chchleung.com</a>. All rights reserved.</p>
+                <a target="_blank" href="http://www.w3.org/TR/html5/"><i class="uk-icon-html5" style="font-size:64px; color: #444;"></i></a>
+            </div>
+        </div>
+    </div>
+
+
+</body>
+</html>

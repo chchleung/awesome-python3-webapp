@@ -24,7 +24,8 @@ def test():
 	yield from orm.create_pool(loop=loop,user='www-data',password='www-data',db='awesome')
 
 	#将旧内容拿出来
-	old=yield from User.findAll(where='`passwd` = ?',args='1234567890',orderBy='`name` DESC') #后面不跟或跟ASC则为升序，跟DESC则为降序
+	#args的内容应该要加括号()或者[]，组成list 或者 tuple，对应各个%s , 以符合cursor.execute语法
+	old=yield from User.findAll(where='`passwd` = ?',args=['1234567890'],orderBy='`name` DESC') #后面不跟或跟ASC则为升序，跟DESC则为降序
 	
 	#尝试更新后，删掉旧数据
 	for k in old:
@@ -38,8 +39,8 @@ def test():
 		u = User(name='Test%d'%i,email = 'test%d@example.com'%i,passwd = '1234567890',image='about=blank')
 		yield from u.save()
 
-	#findNumber的函数貌似不太对，如果用select count(*) 估计才是想要的效果
-	b=yield from User.findNumber('name')
+	#findNumber的函数用于检测数量，参数用 count(*) ，相当于select count(*)
+	b=yield from User.findNumber('count(id)')
 	print('findNumber is :',b)
 
 if __name__=='__main__':

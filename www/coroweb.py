@@ -26,6 +26,10 @@ def get(path):
         # 加了装饰器,wrapper.__name__就等于func.__name__
         @functools.wraps(func)
         def wrapper(*args, **kw):
+            print('get 装饰器预先给fn添加了method和path信息')
+            print('fn-method: ',wrapper.__method__)
+            print('fn-route: ', wrapper.__route__)
+            print('可看到此fn的装饰器预定义与request的形式吻合，于是调用fn')
             return func(*args, **kw)
         # 通过装饰器加上__method__属性,用于表示http method
         wrapper.__method__ = 'GET'
@@ -128,6 +132,7 @@ class RequestHandler(object):
     # 定义了__call__,则其实例可以被视为函数
     # 此处参数为request
     async def __call__(self, request):
+        logging.info('coroweb的RequestHanlder实例，接收到request,准备分析kw,然后传入fn处理')
         kw = None
         # 1, 如果存在关键字参数/命名关键字参数,分析method----------此处url处理函数存在3种参数情况：1. 只有*kw， 2. 只有**kw, 3. *kw + **kw
         if self._has_var_kw_arg or self._has_named_kw_args or self._required_kw_args:
@@ -209,7 +214,8 @@ class RequestHandler(object):
         #---------以上过程即为根据url处理函数的参数定义， 从request中获得必要的参数，并组成kw--------
 
         # 调用handler（url处理函数）处理，并返回response
-        logging.info('call with args: %s' % str(kw))
+        logging.info('coroweb模块：根据fn获取request的kw完毕，准备调用fn--call with args: %s' % str(kw))
+
         try:
             r = await self._func(**kw)
             return r
@@ -232,7 +238,7 @@ def add_static(app):
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
     # app = web.Application(loop=loop)这是在app.py模块中定义的
     app.router.add_static('/static/', path)
-    logging.info('add static %s => %s' % ('/static/', path))
+    logging.info('coroweb模块--加载静态文件：add static %s => %s' % ('/static/', path))
 
 
 # 把单个url处理函数(fn)注册到app, fn通过装饰器里面多了method和path/route信息，从而可以用aiohttp的注册方式注册到app
@@ -244,7 +250,7 @@ def add_route(app, fn):
     # 如果函数fn是不是一个协程或者生成器，就把这个函数变成协程
     if not asyncio.iscoroutinefunction(fn) and not inspect.isgeneratorfunction(fn):
         fn = asyncio.coroutine(fn)
-    logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
+    logging.info('coroweb模块--注册handler：add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn)) #因为调用的是handler,所以传入类实例。但需要一开始的path和method信息，所以只传入url处理函数fn，到最后注册才将其传入RequestHandler
     # 根据文档: A request handler can be any callable that accepts a Request instance as its only argument and returns a StreamResponse derived (e.g. Response) instance: 注册函数里面的第三个参数handler可以call而且只能接受一个参数request，所以我们人为地创造RequestHandler并且call的时候只能接受一个request参数，但貌似初始化时候的app参数一直也用不上？
 

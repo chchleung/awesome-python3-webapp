@@ -1,0 +1,38 @@
+{% extends '__base__.html' %}
+
+{% block title %}日志{% endblock %}
+
+{% block beforehead %}
+
+<script>
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="uk-width-medium-3-4">  <!-- 用于占据页面的内容幅度3/4 -->
+    {% for blog in blogs %}
+        <article class="uk-article">
+            <h2><a href="/blog/{{ blog.id }}">{{ blog.name }}</a></h2>
+            <p class="uk-article-meta">发表于{{ blog.created_at|datetime }}</p> <!-- 通过jinja2的datetime_filter把浮点数转成日期字符串 -->
+            <p>{{ blog.summary }}</p>
+            <p><a href="/blog/{{ blog.id }}">继续阅读 <i class="uk-icon-angle-double-right"></i></a></p>    <!-- i里面class用于输出一个图标，这里是'>>'.将包含其中的文本以斜体字（italic）或者倾斜（oblique）字体显示。如果这种斜体字对该浏览器不可用的话，可以使用高亮、反白或加下划线等样式-->
+        </article>
+        <hr class="uk-article-divider">
+    {% endfor %}
+    </div>
+
+    <div class="uk-width-medium-1-4">  <!-- 用于占据页面的内容幅度1/4 -->
+        <div class="uk-panel uk-panel-header">
+            <h3 class="uk-panel-title">友情链接</h3>
+            <ul class="uk-list uk-list-line">
+                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.w3school.com.cn/">编程</a></li>
+                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.w3school.com.cn/">读书</a></li>
+                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.w3school.com.cn/">Python教程</a></li>
+                <li><i class="uk-icon-thumbs-o-up"></i> <a target="_blank" href="http://www.w3school.com.cn/">Git教程</a></li>
+            </ul>
+        </div>
+    </div>
+
+{% endblock %}

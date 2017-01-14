@@ -73,8 +73,8 @@ def select(sql, args, size=None):
         else: # 未指定size, 打印全部的查询信息
             rs = yield from cur.fetchall()
         yield from cur.close() # 关闭游标
-        logging.info("rows return %s" % len(rs))
-        print('\nrs is : ',rs,'\n')
+        logging.info("ORM模块：rows return %s" % len(rs))
+        # print('\nORM模块：rs is : ',rs,'\n')
         return rs
 
 # 增删改都是对数据库的修改,因此封装到一个函数中

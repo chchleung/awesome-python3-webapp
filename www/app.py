@@ -37,12 +37,16 @@ from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
 import orm
+
 from coroweb import add_routes,add_static
+
+# 加载解密从客户端获取的cookie的方式以及服务器设置的cookie名称
+from handlers import cookie2user, COOKIE_NAME  
 
 
 # 这个函数的功能是初始化jinja2模板，配置jinja2的环境-------------------start
 def init_jinja2(app,**kw):
-	logging.info('init jinja2...')
+	logging.info('app模块------init jinja2...')
 	options = dict(
 		autoescape=kw.get('autoescape',True), # 自动转义xml/html的特殊字符
 		block_start_string = kw.get('block_start_string','{%'),       # 设置代码起始字符串
@@ -59,7 +63,7 @@ def init_jinja2(app,**kw):
         # os.path.dirname()取绝对目录的路径部分
         # os.path.join(path， name)把目录和名字组合
 		path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates')
-	logging.info('set jinja2 template path: %s' % path)
+	logging.info('app模块------set jinja2 template path: %s' % path)
 	 # 初始化jinja2环境。
 	 # loader=FileSystemLoader(path)指的是到哪个目录下加载模板文件， **options就是前面的options
 	env = Environment(loader = FileSystemLoader(path),**options)
@@ -85,6 +89,7 @@ def datetime_filter(t):
         return u'%s小时前' % (delta // 3600)
     if delta < 604800:
         return u'%s天前' % (delta // 86400)
+    #如果10天以前就按年月日返回
     dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
@@ -98,9 +103,38 @@ def datetime_filter(t):
 # 这个函数的作用就是当http请求的时候，通过logging.info输出请求的信息，其中包括请求的方法和路径
 async def logger_factory(app,handler):
 	async def logger(request):
-		logging.info('Request: %s %s' %(request.method,request.path))
+		print('\n通过logger_factory，我们看看request是什么：', str(request))
+		logging.info('app模块的logger_factory,单纯的log一下request的路径和方法，然后准备继续将request传入RequestHandler处理---Request: %s %s' %(request.method,request.path))
 		return (await handler(request))  # 日志记录完毕之后, 调用传入的handler继续处理请求
 	return logger
+
+
+# 在处理请求之前,先将cookie解析出来,并将登录用户绑定到request对象上
+# 这样后续的url处理函数就可以直接拿到登录用户
+# 以后的每个请求,都是在这个middle之后处理的,都已经绑定了用户信息
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info('app模块的auth_factory : 准备通过cookie check user, method and path is: %s %s' % (request.method, request.path))
+        request.__user__ = None  #给 request增加一个参数__user__, 可以看到之后的request都会带着__user__参数，说明request从头到尾都是指向同一个对象，并可以修改
+        cookie_str = request.cookies.get(COOKIE_NAME)   #request有一个叫cookie的属性，是个dict, key是我们之前set的名称，这里的COOKIE_NAME就是我们在handlers.py设定的awesession, 通过get(COOKIE_NAME)获得键值，就是我们user2cookie所输出的字符串（uid-exp-pw3）
+
+        if not cookie_str:
+            logging.info('app模块的auth_factory : 没有cookie信息')
+        if cookie_str:
+            user = await cookie2user(cookie_str)  # 根据函数看是否符合，符合返回一个user对象，不符合返回None
+            if user:
+                logging.info('app模块的auth_factory: cookie验证成功，将user对象放到request的__user__属性内。set current user: %s' % user.email)
+                request.__user__ = user  # 这样新输入的__user__属性就有了内容，是个user对象
+            else:
+                logging.info('app模块的auth_factory: cookie验证失败')
+
+        # 如果请求路径是管理页面，但是用户不是管理员，将重定向到登陆页面
+        if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+            return web.HTTPFound('/signin')
+        
+        return (await handler(request))
+    return auth
+
 
 # 只有当请求方法为POST时这个函数才起作用
 async def data_factory(app,handler):
@@ -120,12 +154,17 @@ async def data_factory(app,handler):
 # 其将request handler的返回值转换为web.Response对象
 async def response_factory(app, handler):
     async def response(request):
-        logging.info('Response handler...')
+        logging.info('app模块的response_factory,异步等待接收handler传过来的东西-----Response handler...')
         r = await handler(request)
+
+        logging.info('app模块response_factory，接收到handler传过来的原始response，规范成webResponse形式...')
+        logging.info('app模块response_factory，看看返回的类型： %s' %type(r))
+
         # 若响应结果为StreamResponse,直接返回
         # StreamResponse是aiohttp定义response的基类,即所有响应类型都继承自该类
         # StreamResponse主要为流式数据而设计
         if isinstance(r, web.StreamResponse):
+            logging.info('app模块response_factory，这是个web.StreamResponse类型的返回，所以直接返回')
             return r
          # 若响应结果为字节流,则将其作为应答的body部分,并设置响应类型为流型
         if isinstance(r, bytes):
@@ -179,9 +218,9 @@ async def response_factory(app, handler):
 
 
 
-#测试首页用：先设置一个方法
-def index(request):
-	return web.Response(body=b'<h1>Awesome</h1>',content_type = 'text/html')
+# #单例测试首页用：先设置一个方法
+# def index(request):
+# 	return web.Response(body=b'<h1>Awesome</h1>',content_type = 'text/html')
 
 
 
@@ -200,24 +239,27 @@ def init (loop):
 
 	# 创建一个web.app的实例， event loop used for processing HTTP request.
 	# 文档:If param is None asyncio.get_event_loop() used for getting default event loop, but we strongly recommend to use explicit loops everywhere.(所以传不传入loop都行)
-	app = web.Application(loop=loop,middlewares=[logger_factory, response_factory])
+	app = web.Application(loop=loop,middlewares=[logger_factory, auth_factory, response_factory])
 	
 	# 设置模板为jiaja2, 并以时间为过滤器
-	init_jinja2(app,filters = dict(datatime = datetime_filter))
+	init_jinja2(app,filters = dict(datetime = datetime_filter))
 	
 	# 注册所有url处理函数
+    #调用coroweb的注册函数，传入模版的名称/地址，从而逐个注册handler模版里面的每一个url
 	add_routes(app,'handlers')
 	
 	# 将当前目录下的static目录装入app目录
 	add_static(app)
 
-	app.router.add_route('GET','/',index) # 测试首页用
+	# app.router.add_route('GET','/',index) # 测试首页用
 
 	# 调用协程:创建一个TCP服务器,绑定到"127.0.0.1:9000"socket,并返回一个服务器对象
 	# 用协程创建监听服务，其中loop为传入函数的协程，调用其类方法创建一个监听服务
 	# yield from 返回一个创建好的，绑定IP、端口、HTTP协议簇的监听服务的协程。yield from的作用是使srv的行为模式和 loop.create_server()一致
-	srv = yield from loop.create_server(app.make_handler(),'127.0.0.1',9000)
-	logging.info('server started at http://127.0.0.1:9000...')
+	srv = yield from loop.create_server(app.make_handler(),'127.0.0.1',9001)
+	logging.info('app模块------服务启动-------server started at http://127.0.0.1:9000...')
+	logging.info('***********************************************\n\n')
+
 	return srv
 
 
