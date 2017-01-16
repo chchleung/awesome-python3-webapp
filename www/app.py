@@ -131,7 +131,7 @@ async def auth_factory(app, handler):
         # 如果请求路径是管理页面，但是用户不是管理员，将重定向到登陆页面
         if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
             return web.HTTPFound('/signin')
-        
+
         return (await handler(request))
     return auth
 

@@ -19,6 +19,8 @@ from config import configs
 
 from aiohttp import web
 
+import markdown2
+
 
 # befort day 7------------------------------------------------------------------------START
 
@@ -64,7 +66,12 @@ def get_page_index(page_str):
 		p = 1
 	return p
 
-
+# -----------------------------检查是否管理员-----------------------------------------START
+def check_admin(request):
+    if request.__user__ is None or not request.__user__.admin:
+        raise APIPermissionError()
+    logging.info('handlers模块，check_admin, 验证管理员成功')
+# -----------------------------检查是否管理员-----------------------------------------END
 
 
 COOKIE_NAME = 'awesession'
@@ -182,6 +189,7 @@ def api_register_user(*, email, name, passwd):   # 这个passwd已经是经过�
     return r
 #-------------------------------注册-------------------------------------------------END
 
+
 #-------------------------------登录------------------------------------------------START
 @get('/signin')
 def signin():
@@ -216,11 +224,10 @@ def authenticate(*, email, passwd):
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
-
 #-------------------------------登录------------------------------------------------END
 
 
-
+#-------------------------------登出------------------------------------------------START
 @get('/signout')
 def signout(request):
 	# 请求头部的referer，表示从哪里链接到当前页面的，即获得上一个页面，没有则为None
@@ -230,3 +237,70 @@ def signout(request):
     r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
     logging.info('handlers模块 ：user signed out. 成功登出')
     return r
+#-------------------------------登出------------------------------------------------END
+
+
+
+
+# ------------------------------博客管理---------------------------------------------START
+
+# --------------------------------写博客---------------------------------------------START
+# 进入创建博客页面
+@get('/manage/blogs/create')
+def manage_create_blog():       
+    return {
+        '__template__': 'manage_blog_edit.html',
+        'id': '',               # id的值将传给js变量ID---------------create 的话传入的id 为空，即新创建
+        'action': '/api/blogs'  # 对应HTML页面中VUE的action名字
+    }                           # 将在用户提交博客的时候，将数据post到action制定的路径，此处即为创建博客的api
+
+
+# 创建博客的api,从js的postJSON函数接收表单信息
+@post('/api/blogs')             
+def api_create_blog(request, *, name, summary, content):
+    check_admin(request)
+    if not name or not name.strip():
+        raise APIValueError('name', 'name cannot be empty.')
+    if not summary or not summary.strip():
+        raise APIValueError('summary', 'summary cannot be empty.')
+    if not content or not content.strip():
+        raise APIValueError('content', 'content cannot be empty.')
+    blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
+    yield from blog.save()
+    return blog
+# ------------------------------- 写博客---------------------------------------------END
+
+
+# 根据blog的id查询某页博客的信息。 也会在博客创建完毕之后，由该html直接调用
+@get('/api/blogs/{id}')
+def api_get_blog(*, id):
+    blog = yield from Blog.find(id)
+    return blog
+
+
+
+# 显示某一页博客
+@get('/blog/{id}')
+def get_blog(request,*,id):
+    blog = yield from Blog.find(id)
+    comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
+    for c in comments:
+        c.html_content = text2html(c.content)             # 将每条评论都转化成html格式
+    blog.html_content = markdown2.markdown(blog.content)  # blog是markdown格式,将其转换为html格式
+    return {
+        '__template__': 'blog.html',
+        'blog': blog,
+        'comments': comments,
+        '__user__':request.__user__
+    }
+
+# 把存文本文件转为html格式的文本
+def text2html(text):
+    # filter()是‘筛选函数’，接收一个函数和一个序列，filter()把传入的函数依次作用于序列的每个元素，然后根据返回值是True还是false决定保留还是丢弃该元素。这里，是将断行后的数组内容去掉首尾空格，如果还是空，则去掉这个元素
+    # 先用filter函数对输入的文本进行过滤处理: 断行,去掉空白字符
+    # 再用map函数对特殊符号进行转换,在将字符串装入html的<p>标签中
+    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))  #strip 是删除头尾的字符，split是根据指定字符分割成字符串数组
+     # lines是一个字符串列表,将其组装成一个字符串,该字符串即表示html的段落
+    return ''.join(lines)
+
+
