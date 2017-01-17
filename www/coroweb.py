@@ -26,10 +26,10 @@ def get(path):
         # 加了装饰器,wrapper.__name__就等于func.__name__
         @functools.wraps(func)
         def wrapper(*args, **kw):
-            print('get 装饰器预先给fn添加了method和path信息')
-            print('fn-method: ',wrapper.__method__)
-            print('fn-route: ', wrapper.__route__)
-            print('可看到此fn的装饰器预定义与request的形式吻合，于是调用fn')
+            # print('get 装饰器预先给fn添加了method和path信息')
+            # print('fn-method: ',wrapper.__method__)
+            # print('fn-route: ', wrapper.__route__)
+            # print('可看到此fn的装饰器预定义与request的形式吻合，于是调用fn')
             return func(*args, **kw)
         # 通过装饰器加上__method__属性,用于表示http method
         wrapper.__method__ = 'GET'

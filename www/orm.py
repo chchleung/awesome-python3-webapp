@@ -25,7 +25,7 @@ import logging;logging.basicConfig(level=logging.INFO)
 
 # 打印sql日志
 def log(sql, args=()):
-    logging.info("SQL: %s , args: %s" % (sql,args))
+    logging.info("SQL: %s , args: %s" % (sql,'~'))
 
 # 创建全局数据库连接池,使每个http请求都能从连接池中直接获取数据库连接
 # 避免了频繁地打开或关闭数据库连接
