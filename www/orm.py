@@ -3,7 +3,7 @@
 
 'orm for awesome'
 
-print('this import file__name__==',__name__,'\n')
+print('this import file__name__==',__name__)
 
 __author__='chch'
 
