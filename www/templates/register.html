@@ -45,8 +45,7 @@ $(function () {
                     passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()
                 }, function (err, r) {
                     if (err) {
-                        // return $form.showFormError(err);
-                        return '错了'
+						return $form.showFormError(err);
                     }
                     return location.assign('/');
                 });

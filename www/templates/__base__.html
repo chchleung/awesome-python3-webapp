@@ -41,7 +41,10 @@
             <ul class="uk-navbar-nav">       <!--用于导航栏内容式样 -->
                 <li data-url="blogs"><a href="/"><i class="uk-icon-home"></i> 日志</a></li>
                 <li><a target="_blank" href="http://www.baidu.com"><i class="uk-icon-book"></i> 教程</a></li>
-                <li><a target="_blank" href="https://github.com/chchleung"><i class="uk-icon-code"></i> 源码</a></li>
+                <li><a target="_blank" href="https://github.com/chchleung"><i class="uk-icon-code-fork"></i> 源码</a></li>
+				{% if __user__.name == 'admin' %}
+				<li><a target="_self" href="/manage/blogs"><i class="uk-icon-archive"></i> 管理</a></li>
+				{% endif %}
             </ul>
             <div class="uk-navbar-flip">    <!--用于导航栏内容靠右边 -->
                 <ul class="uk-navbar-nav">

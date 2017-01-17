@@ -13,7 +13,7 @@ from coroweb import get, post
 
 from models import User, Comment, Blog, next_id
 
-from apis import APIError,APIValueError,APIResourceNotFoundError,APIPermissionError
+from apis import APIError,APIValueError,APIResourceNotFoundError,APIPermissionError,Page
 
 from config import configs
 
@@ -151,9 +151,14 @@ def index(request):
 
 #-------------------------------注册--------------------------------------------------START
 @get('/register')
-def register():
+def register(request):
+    have_signin=None
+    if not request.__user__== None:
+        have_signin = request.__user__
+        have_signin.name = '登录了还注册个啥'
     return {
-        '__template__': 'register.html'
+        '__template__': 'register.html',
+        '__user__': have_signin
     }
 
 
@@ -244,14 +249,75 @@ def signout(request):
 
 # ------------------------------博客管理---------------------------------------------START
 
+# ---------------------------展示全部博文管理页面------------------------------------START
+@get('/manage/blogs')       # 如果后面有？page= N , 则会把page 参数一起传去page_index, 然后以 page_index 通过 html 传入 下面的api , 最后返回Page对象
+def manage_blogs(request,*, page='1'):
+    return {
+        '__template__': 'manage_blogs.html',
+        'page_index': get_page_index(page),     # get_page_index是开头定义的将页数str转成int的函数
+        '__user__':request.__user__
+    }
+
+# 在manage_blogs.html中调用，注意和下面的post的api不同，下面是创建，这个是查询
+@get('/api/blogs')         
+def api_blogs(*, page='1'):    # page由html传入
+    page_index = get_page_index(page)  
+    num = yield from Blog.findNumber('count(id)')  # num为博客总数
+    p = Page(num, page_index)     # 创建Page对象（Page对象在apis.py中定义） 
+    if num == 0:
+        return dict(page_obj=p, blogs=())   # 若博客数为0, 则手动创建页面对象和空的博客tuple
+    # 博客总数不为0,则从数据库中抓取博客
+    # limit强制select语句返回指定的记录数,前一个参数为偏移量,后一个参数为该页显示的最大数目，limit由第offset+1开始显示
+    blogs = yield from Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    return dict(page_obj=p, blogs=blogs)
+# ---------------------------展示全部博文管理页面------------------------------------END
+
+
+# ------------------------------- 展示单页博客---------------------------------------START
+
+# 方法一：根据blog的id查询某页博客的信息，返回的是一个blog对象，单纯用于查询
+@get('/api/blogs/{id}')
+def api_get_blog(*, id):
+    blog = yield from Blog.find(id)
+    return blog
+
+
+
+# 方法二：显示某一页博客，返回的是一个html
+@get('/blog/{id}')
+def get_blog(request,*,id):
+    blog = yield from Blog.find(id)
+    comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
+    for c in comments:
+        c.html_content = text2html(c.content)             # 将每条评论都转化成html格式
+    blog.html_content = markdown2.markdown(blog.content)  # blog是markdown格式,将其转换为html格式
+    return {
+        '__template__': 'blog.html',
+        'blog': blog,
+        'comments': comments,
+        '__user__':request.__user__
+    }
+
+# 把存文本文件转为html格式的文本----用于显示评论
+def text2html(text):
+    # filter()是‘筛选函数’，接收一个函数和一个序列，filter()把传入的函数依次作用于序列的每个元素，然后根据返回值是True还是false决定保留还是丢弃该元素。这里，是将断行后的数组内容去掉首尾空格，如果还是空，则去掉这个元素
+    # 先用filter函数对输入的文本进行过滤处理: 断行,去掉空白字符
+    # 再用map函数对特殊符号进行转换,在将字符串装入html的<p>标签中
+    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))  #strip 是删除头尾的字符，split是根据指定字符分割成字符串数组   
+    return ''.join(lines)  # lines是一个字符串列表,将其组装成一个字符串,该字符串即表示html的段落
+
+# ------------------------------- 展示单页博客---------------------------------------END
+
+
 # --------------------------------写博客---------------------------------------------START
 # 进入创建博客页面
 @get('/manage/blogs/create')
-def manage_create_blog():       
+def manage_create_blog(request):       
     return {
         '__template__': 'manage_blog_edit.html',
         'id': '',               # id的值将传给js变量ID---------------create 的话传入的id 为空，即新创建
-        'action': '/api/blogs'  # 对应HTML页面中VUE的action名字
+        'action': '/api/blogs',  # 对应HTML页面中VUE的action名字
+        '__user__':request.__user__
     }                           # 将在用户提交博客的时候，将数据post到action制定的路径，此处即为创建博客的api
 
 
@@ -269,38 +335,5 @@ def api_create_blog(request, *, name, summary, content):
     yield from blog.save()
     return blog
 # ------------------------------- 写博客---------------------------------------------END
-
-
-# 根据blog的id查询某页博客的信息。 也会在博客创建完毕之后，由该html直接调用
-@get('/api/blogs/{id}')
-def api_get_blog(*, id):
-    blog = yield from Blog.find(id)
-    return blog
-
-
-
-# 显示某一页博客
-@get('/blog/{id}')
-def get_blog(request,*,id):
-    blog = yield from Blog.find(id)
-    comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
-    for c in comments:
-        c.html_content = text2html(c.content)             # 将每条评论都转化成html格式
-    blog.html_content = markdown2.markdown(blog.content)  # blog是markdown格式,将其转换为html格式
-    return {
-        '__template__': 'blog.html',
-        'blog': blog,
-        'comments': comments,
-        '__user__':request.__user__
-    }
-
-# 把存文本文件转为html格式的文本
-def text2html(text):
-    # filter()是‘筛选函数’，接收一个函数和一个序列，filter()把传入的函数依次作用于序列的每个元素，然后根据返回值是True还是false决定保留还是丢弃该元素。这里，是将断行后的数组内容去掉首尾空格，如果还是空，则去掉这个元素
-    # 先用filter函数对输入的文本进行过滤处理: 断行,去掉空白字符
-    # 再用map函数对特殊符号进行转换,在将字符串装入html的<p>标签中
-    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))  #strip 是删除头尾的字符，split是根据指定字符分割成字符串数组
-     # lines是一个字符串列表,将其组装成一个字符串,该字符串即表示html的段落
-    return ''.join(lines)
 
 
