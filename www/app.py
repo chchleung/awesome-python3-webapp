@@ -43,6 +43,8 @@ from coroweb import add_routes,add_static
 # 加载解密从客户端获取的cookie的方式以及服务器设置的cookie名称
 from handlers import cookie2user, COOKIE_NAME  
 
+from config import configs
+
 
 # 这个函数的功能是初始化jinja2模板，配置jinja2的环境-------------------start
 def init_jinja2(app,**kw):
@@ -103,8 +105,8 @@ def datetime_filter(t):
 # 这个函数的作用就是当http请求的时候，通过logging.info输出请求的信息，其中包括请求的方法和路径
 async def logger_factory(app,handler):
 	async def logger(request):
-		print('\n通过logger_factory，我们看看request是什么：', str(request))
-		logging.info('app模块的logger_factory,单纯的log一下request的路径和方法，然后准备继续将request传入RequestHandler处理---Request: %s %s' %(request.method,request.path))
+		print('\n通过logger_factory，看看request是什么：', str(request))
+		logging.info('app模块的logger_factory,记录request的路径和方法，然后准备继续将request传入RequestHandler处理---Request: %s %s' %(request.method,request.path))
 		return (await handler(request))  # 日志记录完毕之后, 调用传入的handler继续处理请求
 	return logger
 
@@ -114,7 +116,7 @@ async def logger_factory(app,handler):
 # 以后的每个请求,都是在这个middle之后处理的,都已经绑定了用户信息
 async def auth_factory(app, handler):
     async def auth(request):
-        logging.info('app模块的auth_factory : 准备通过cookie check user, method and path is: %s %s' % (request.method, request.path))
+        logging.info('app模块的auth_factory : 准备通过cookie来检查用户, method and path is: %s %s' % (request.method, request.path))
         request.__user__ = None  #给 request增加一个参数__user__, 可以看到之后的request都会带着__user__参数，说明request从头到尾都是指向同一个对象，并可以修改
         cookie_str = request.cookies.get(COOKIE_NAME)   #request有一个叫cookie的属性，是个dict, key是我们之前set的名称，这里的COOKIE_NAME就是我们在handlers.py设定的awesession, 通过get(COOKIE_NAME)获得键值，就是我们user2cookie所输出的字符串（uid-exp-pw3）
 
@@ -235,7 +237,7 @@ async def response_factory(app, handler):
 @asyncio.coroutine
 def init (loop):
 	# 创建数据库连接池
-	yield from orm.create_pool(loop = loop, host = '127.0.0.1', port = 3306, user = 'www-data', password = 'www-data', db = 'awesome')
+	yield from orm.create_pool(loop = loop, **configs.db)
 
 	# 创建一个web.app的实例， event loop used for processing HTTP request.
 	# 文档:If param is None asyncio.get_event_loop() used for getting default event loop, but we strongly recommend to use explicit loops everywhere.(所以传不传入loop都行)
@@ -256,7 +258,7 @@ def init (loop):
 	# 调用协程:创建一个TCP服务器,绑定到"127.0.0.1:9000"socket,并返回一个服务器对象
 	# 用协程创建监听服务，其中loop为传入函数的协程，调用其类方法创建一个监听服务
 	# yield from 返回一个创建好的，绑定IP、端口、HTTP协议簇的监听服务的协程。yield from的作用是使srv的行为模式和 loop.create_server()一致
-	srv = yield from loop.create_server(app.make_handler(),'127.0.0.1',9001)
+	srv = yield from loop.create_server(app.make_handler(),'127.0.0.1',9000)
 	logging.info('app模块------服务启动-------server started at http://127.0.0.1:9000...')
 	logging.info('***********************************************\n\n')
 

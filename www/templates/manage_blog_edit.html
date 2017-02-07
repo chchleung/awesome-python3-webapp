@@ -1,13 +1,13 @@
 {% extends '__base__.html' %}
 
-{% block title %}编辑日志{% endblock %}
+{% block title %}编辑日志{% endblock %}    <!-- edit包含create 和 update -->
 
 {% block beforehead %}
 
 <script>       
 var   //这里通过handlers return 的 id 和 action  获得对应参数
     ID = '{{ id }}',
-    action = '{{ action }}';
+    action = '{{ action }}';  //这里action根据是新日志(create)或是修改(update)日志，指向不同的api地址
 function initVM(blog) {
     // 创建一个 Vue 实例或 "ViewModel", 它连接 View 与 Model
 	var vm = new Vue({   // 前面不加var表示这是一个全局变量，否则为一个局部变量
@@ -32,7 +32,7 @@ function initVM(blog) {
 }
 $(function () {
     if (ID) {
-        getJSON('/api/blogs/' + ID, function (err, blog) {     // 如果传入了博文id, 则post调用查询博文内容的api, 把获取的blog对象作为参数传入上面的initVM函数
+        getJSON('/api/blog/' + ID, function (err, blog) {     // 如果传入了博文id, 则post调用查询博文内容的api, 把获取的blog对象作为参数传入上面的initVM函数
             if (err) {
                 return fatal(err);
             }

@@ -11,7 +11,7 @@ $(function () {
     $form.submit(function (e) {
         e.preventDefault();    //取消事件的默认动作
         $form.showFormError('');
-        var content = $form.find('textarea').val().trim();
+        var content = $form.find('textarea').val().trim();  //jQuery的.val()方法专门用来获取表单元素值
         if (content==='') {
             return $form.showFormError('请输入评论内容！');
         }

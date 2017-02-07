@@ -39,7 +39,7 @@ $(function () {
                     return $form.showFormError('两次输入的口令不一致');
                 }
                 var email = this.email.trim().toLowerCase();
-                $form.postJSON('/api/users', {    // 将表单以json格式,post形式传输到/api/users
+                $form.postJSON('/api/reg_users', {    // 将表单以json格式,post形式传输到/api/users
                     name: this.name.trim(),       // handlers.py中针对post的用户注册api
                     email: email,
                     passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()

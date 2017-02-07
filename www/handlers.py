@@ -23,7 +23,6 @@ import markdown2
 
 
 # befort day 7------------------------------------------------------------------------START
-
 # @get('/')
 # async def index(request):
 # 	logging.info('调用handler模块的index函数，读取了数据库，返回指定template和users')
@@ -32,28 +31,9 @@ import markdown2
 # 		'__template__':'test.html',
 # 		'users':users
 # 	}
-
 # befort day 7--------------------------------------------------------------------------END
 
-# befort day 9------------------------------------------------------------------------START
 
-@get('/api/userlist')          # 用户信息接口,用于返回机器能识别的用户信息
-def api_get_users(*, page='1'):
-	# 获取到要展示的博客页数是第几页
-    page_index = get_page_index(page)
-	# count为MySQL中的聚集函数，用于计算某列的行数。user_count代表了有多个用户id
-    num = yield from User.findNumber('count(id)')
-    # 通过Page类来计算当前页的相关信息, 其实是数据库limit语句中的offset，limit
-    p = Page(num, page_index)
-    if num == 0:
-        return dict(page=p, users=())
-    # page.offset表示从那一行开始检索，page.limit表示检索多少行
-    users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
-    for u in users:
-        u.passwd = '******'
-    return dict(page=p, users=users)
-
-# befort day 9--------------------------------------------------------------------------END
 
 # 用于将str转成int来传回页码
 def get_page_index(page_str):
@@ -66,12 +46,14 @@ def get_page_index(page_str):
 		p = 1
 	return p
 
+
 # -----------------------------检查是否管理员-----------------------------------------START
 def check_admin(request):
     if request.__user__ is None or not request.__user__.admin:
         raise APIPermissionError()
     logging.info('handlers模块，check_admin, 验证管理员成功')
 # -----------------------------检查是否管理员-----------------------------------------END
+
 
 
 COOKIE_NAME = 'awesession'
@@ -131,22 +113,33 @@ def cookie2user(cookie_str):   #用在了app模块的auth拦截器
 #-------------------------解密cookie--------------------------------------------------END
 
 
+
 #---------------------------------------首页------------------------------------------START
 @get('/')
-def index(request):  
-    summary = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'#Lorem ipsum是指一篇常用于排版设计领域的拉丁文文章，主要的目的为测试文章或文字在不同字型、版型下看起来的效果
-    blogs = [
-        Blog(id='1', name='Test Blog', summary=summary, created_at=time.time()-120),
-        Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
-        Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200),
-        Blog(id='4', name = 'One another', summary = summary, created_at = time.time()-608402)
-    ]
+def index(request,*, page='1'):  
+    # summary = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'#Lorem ipsum
+    # 是指一篇常用于排版设计领域的拉丁文文章，主要的目的为测试文章或文字在不同字型、版型下看起来的效果
+    # blogs = [
+    #     Blog(id='1', name='Test Blog', summary=summary, created_at=time.time()-120),
+    #     Blog(id='2', name='Something New', summary=summary, created_at=time.time()-3600),
+    #     Blog(id='3', name='Learn Swift', summary=summary, created_at=time.time()-7200),
+    #     Blog(id='4', name = 'One another', summary = summary, created_at = time.time()-608402)
+    # ]
+    page_index = get_page_index(page)
+    num = yield from Blog.findNumber('count(id)')
+    page_obj = Page(num,page_index)
+    if num == 0:
+        blogs=[]
+    else:
+        blogs = yield from Blog.findAll(orderBy='created_at desc',limit=(page_obj.offset,page_obj.limit))
     return {
-        '__template__': 'blogs.html',
+        '__template__': 'home_blogs.html',
         'blogs': blogs,
+        'page_obj':page_obj,
         '__user__':request.__user__
     }
 #---------------------------------------首页--------------------------------------------END
+
 
 
 #-------------------------------注册--------------------------------------------------START
@@ -165,7 +158,7 @@ def register(request):
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
-@post('/api/users')
+@post('/api/reg_users')
 def api_register_user(*, email, name, passwd):   # 这个passwd已经是经过客户端装载了email的加密的pw-1
     if not name or not name.strip():             # strip() 方法用于移除字符串头尾指定的字符（默认为空格）
         raise APIValueError('name')
@@ -193,6 +186,7 @@ def api_register_user(*, email, name, passwd):   # 这个passwd已经是经过�
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')     # json.dumps方法将对象序列化为json格式
     return r
 #-------------------------------注册-------------------------------------------------END
+
 
 
 #-------------------------------登录------------------------------------------------START
@@ -232,6 +226,7 @@ def authenticate(*, email, passwd):
 #-------------------------------登录------------------------------------------------END
 
 
+
 #-------------------------------登出------------------------------------------------START
 @get('/signout')
 def signout(request):
@@ -247,7 +242,8 @@ def signout(request):
 
 
 
-# ------------------------------博客管理---------------------------------------------START
+# ------------------------------日志管理---------------------------------------------START
+
 
 # ---------------------------展示全部博文管理页面------------------------------------START
 @get('/manage/blogs')       # 如果后面有？page= N , 则会把page 参数一起传去page_index, 然后以 page_index 通过 html 传入 下面的api , 最后返回Page对象
@@ -258,7 +254,7 @@ def manage_blogs(request,*, page='1'):
         '__user__':request.__user__
     }
 
-# 在manage_blogs.html中调用，注意和下面的post的api不同，下面是创建，这个是查询
+# 在manage_blogs.html中调用，这个是查询
 @get('/api/blogs')         
 def api_blogs(*, page='1'):    # page由html传入
     page_index = get_page_index(page)  
@@ -274,13 +270,12 @@ def api_blogs(*, page='1'):    # page由html传入
 
 
 # ------------------------------- 展示单页博客---------------------------------------START
-
 # 方法一：根据blog的id查询某页博客的信息，返回的是一个blog对象，单纯用于查询
-@get('/api/blogs/{id}')
+@get('/api/blog/{id}')
 def api_get_blog(*, id):
     blog = yield from Blog.find(id)
+    print('fanhuile, ',blog.name)
     return blog
-
 
 
 # 方法二：显示某一页博客，返回的是一个html
@@ -309,20 +304,20 @@ def text2html(text):
 # ------------------------------- 展示单页博客---------------------------------------END
 
 
-# --------------------------------写博客---------------------------------------------START
+# --------------------------------写新博文-------------------------------------------START
 # 进入创建博客页面
 @get('/manage/blogs/create')
 def manage_create_blog(request):       
     return {
         '__template__': 'manage_blog_edit.html',
         'id': '',               # id的值将传给js变量ID---------------create 的话传入的id 为空，即新创建
-        'action': '/api/blogs',  # 对应HTML页面中VUE的action名字
+        'action': '/api/createblogs',  # 对应HTML页面中VUE的action名字
         '__user__':request.__user__
     }                           # 将在用户提交博客的时候，将数据post到action制定的路径，此处即为创建博客的api
 
 
 # 创建博客的api,从js的postJSON函数接收表单信息
-@post('/api/blogs')             
+@post('/api/createblogs')             
 def api_create_blog(request, *, name, summary, content):
     check_admin(request)
     if not name or not name.strip():
@@ -334,6 +329,145 @@ def api_create_blog(request, *, name, summary, content):
     blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
     yield from blog.save()
     return blog
-# ------------------------------- 写博客---------------------------------------------END
+# ------------------------------- 写新博文-------------------------------------------END
 
 
+# -------------------------------修改博文--------------------------------------------START
+@get('/manage/blogs/edit')
+def manage_edit_blog(request,*, id):
+    return {
+        '__template__': 'manage_blog_edit.html',
+        'id': id,
+        'action': '/api/updateblogs/%s' % id,
+        '__user__':request.__user__
+    }
+
+@post('/api/updateblogs/{id}')
+def api_update_blog(id, request, *, name, summary, content):
+    check_admin(request)
+    blog = yield from Blog.find(id)
+    if not name or not name.strip():
+        raise APIValueError('name', 'name cannot be empty.')
+    if not summary or not summary.strip():
+        raise APIValueError('summary', 'summary cannot be empty.')
+    if not content or not content.strip():
+        raise APIValueError('content', 'content cannot be empty.')
+    blog.name = name.strip()
+    blog.summary = summary.strip()
+    blog.content = content.strip()
+    yield from blog.update()
+    logging.info('成功修改日志 %s' % blog.name)
+    return blog
+# -------------------------------修改博文--------------------------------------------END
+
+
+# -------------------------------删除博文--------------------------------------------START
+@post('/api/blogs/{id}/delete')
+def api_delete_blog(request, *, id):
+    check_admin(request)
+    blog = yield from Blog.find(id)
+    yield from blog.remove()
+    logging.info('成功删除日志 %s' % blog.name)
+    return dict(id=id)
+# -------------------------------删除博文--------------------------------------------END
+
+
+# ------------------------------日志管理---------------------------------------------END
+
+
+
+# -------------------------------评论管理--------------------------------------------START
+
+@get('/manage/')   # 管理页面重定向，以
+def manage():
+    return 'redirect:/manage/comments'
+
+# 评论管理页面
+@get('/manage/comments')
+def manage_comments(request, *, page='1'):
+    return {
+        '__template__': 'manage_comments.html',
+        'page_index': get_page_index(page),
+        '__user__' : request.__user__
+    }
+
+# html通过调用api查看评论
+@get('/api/comments')
+def api_comments(*, page='1'):
+    page_index = get_page_index(page)
+    num = yield from Comment.findNumber('count(id)')
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page_obj=p, comments=())
+    comments = yield from Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    for c in comments:
+        blog=yield from Blog.find(c.blog_id)   # 临时将最新的日志名称赋予评论
+        c.blog_name=blog.name
+    return dict(page_obj=p, comments=comments)
+
+# html通过调用api删除评论
+@post('/api/comments/{id}/delete')
+def api_delete_comments(id, request):
+    check_admin(request)
+    c = yield from Comment.find(id)
+    if c is None:
+        raise APIResourceNotFoundError('Comment')
+    yield from c.remove()
+    logging.info('成功删除评论%')
+    return dict(id=id)
+
+# 发表评论
+@post('/api/blogs/{id}/comments')
+def api_create_comment(id, request, *, content):
+    user = request.__user__
+    if user is None:
+        raise APIPermissionError('Please signin first.')
+    if not content or not content.strip():
+        raise APIValueError('content')
+    blog = yield from Blog.find(id)
+    if blog is None:
+        raise APIResourceNotFoundError('Blog')
+    comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image, content=content.strip())
+    yield from comment.save()
+    return comment
+# -------------------------------评论管理--------------------------------------------END
+
+
+
+# -------------------------------用户管理--------------------------------------------START
+
+@get('/manage/users')
+def manage_users(request,*, page='1'):
+    return {
+        '__template__': 'manage_users.html',
+        'page_index': get_page_index(page),
+        '__user__':request.__user__
+    }
+
+# 查询全部用户
+@get('/api/users')          # 用户信息接口,用于返回机器能识别的用户信息
+def api_get_users(*, page='1'):
+    # 获取到要展示的博客页数是第几页
+    page_index = get_page_index(page)
+    # count为MySQL中的聚集函数，用于计算某列的行数。user_count代表了有多个用户id
+    num = yield from User.findNumber('count(id)')
+    # 通过Page类来计算当前页的相关信息, 其实是数据库limit语句中的offset，limit
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page_obj=p, users=())
+    # page.offset表示从那一行开始检索，page.limit表示检索多少行
+    users = yield from User.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    for u in users:
+        u.passwd = '******'
+    return dict(page_obj=p, users=users)
+
+# 删除用户
+@post('/api/users/{id}/delete')
+def api_delete_user(id, request):
+    check_admin(request)
+    u = yield from User.find(id)
+    if u is None:
+        raise APIResourceNotFoundError('User')
+    yield from u.remove()
+    logging.info('成功删除用户 %s' % u.name)
+    return dict(id=id)

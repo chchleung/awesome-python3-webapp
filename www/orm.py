@@ -25,7 +25,7 @@ import logging;logging.basicConfig(level=logging.INFO)
 
 # 打印sql日志
 def log(sql, args=()):
-    logging.info("SQL: %s , args: %s" % (sql,'~'))
+    logging.info("SQL: %s , args: %s" % (sql,'猜'))
 
 # 创建全局数据库连接池,使每个http请求都能从连接池中直接获取数据库连接
 # 避免了频繁地打开或关闭数据库连接
@@ -251,14 +251,12 @@ class Model(dict, metaclass=ModelMetaclass):
         return getattr(self, key, None)
 
     # 通过键取值,若值不存在,则返回默认值
-    # 这个函数很好玩!
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
             field = self.__mappings__[key] # field是一个定义域!比如FloatField
             # default这个属性在此处再次发挥作用了!
             if field.default is not None:
-                # 看例子你就懂了
                 # id的StringField.default=next_id,因此调用该函数生成独立id
                 # FloatFiled.default=time.time数,因此调用time.time函数返回当前时间
                 # 普通属性的StringField默认为None,因此还是返回None
@@ -360,6 +358,7 @@ class Model(dict, metaclass=ModelMetaclass):
         rows = yield from execute(self.__delete__, args) # 调用默认的delete语句
         if rows != 1:
             logging.warn("failed to remove by primary key: affected rows %s" % rows)
+
 
 
 

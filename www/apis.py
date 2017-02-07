@@ -59,6 +59,7 @@ class APIPermissionError(APIError):
         super(APIPermissionError, self).__init__('permission:forbidden', 'permission', message)
 
 
+
 # ----------------------------------------------编写Page 分页对象------------------------START
 class Page(object):   # page对象,用于储存分页信息
     '''

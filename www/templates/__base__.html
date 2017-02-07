@@ -42,8 +42,10 @@
                 <li data-url="blogs"><a href="/"><i class="uk-icon-home"></i> 日志</a></li>
                 <li><a target="_blank" href="http://www.baidu.com"><i class="uk-icon-book"></i> 教程</a></li>
                 <li><a target="_blank" href="https://github.com/chchleung"><i class="uk-icon-code-fork"></i> 源码</a></li>
-				{% if __user__.name == 'admin' %}
-				<li><a target="_self" href="/manage/blogs"><i class="uk-icon-archive"></i> 管理</a></li>
+				{% if __user__ %}
+					{% if __user__.name == 'admin' %}
+					<li><a target="_self" href="/manage/blogs"><i class="uk-icon-archive"></i> 管理</a></li>
+					{% endif %}
 				{% endif %}
             </ul>
             <div class="uk-navbar-flip">    <!--用于导航栏内容靠右边 -->
@@ -88,7 +90,7 @@
                     <a target="_blank" href="http://www.linkedin.com/in/liangzhichong" class="uk-icon-button uk-icon-linkedin-square"></a>
                     <a target="_blank" href="https://www.facebook.com/zhichong.leung" class="uk-icon-button uk-icon-facebook"></a>
                 </p>
-                <p>Powered by <a href="http://awesome.chchlueng.com">Awesome Python Webapp</a>. Copyright &copy; 2014. [<a href="/manage/" target="_blank">Manage</a>]</p>
+                <p>Powered by <a href="http://awesome.chchlueng.com">Awesome Python Webapp</a>. Copyright &copy; 2014. [<a href="/manage/" target="_self">Manage</a>]</p>
                 <p><a href="http://www.chchleung.com/" target="_blank">www.chchleung.com</a>. All rights reserved.</p>
                 <a target="_blank" href="http://www.w3.org/TR/html5/"><i class="uk-icon-html5" style="font-size:64px; color: #444;"></i></a>
             </div>

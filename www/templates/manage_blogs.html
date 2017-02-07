@@ -17,7 +17,7 @@ function initVM(data) {
                 location.assign('/manage/blogs/edit?id=' + blog.id);  // 转到新的编辑该Blog的页面
                 },
             delete_blog: function (blog) {
-                if (confirm('Are you sure to delete' + blog.name + '?')) {
+                if (confirm('Are you sure to delete ' + blog.name + ' ?')) {
                     postJSON('/api/blogs/' + blog.id + '/delete', function (err, r) {
                         if (err) {
                             return alert(err.message || err.error || err);
