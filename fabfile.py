@@ -15,9 +15,10 @@ from datetime import datetime
 
 from fabric.api import *
 
-env.user = 'ubuntu'
-env.sudo_user = 'root'
-env.hosts = ['35.162.188.57']
+# env.user = 'ubuntu'
+# env.sudo_user = 'root'
+env.key_filename=['E:\\awskeyfile\\chch-ubun.pem']
+env.hosts = ['ubuntu@ec2-35-162-188-57.us-west-2.compute.amazonaws.com']
 
 db_user = 'www-data'
 db_password = 'www-data'
