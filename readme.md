@@ -10,17 +10,17 @@
 
 ###代码结构：###
 www  
- +- static:存放静态资源  
- +- templates:存放模板文件  
- -  app.py: HTTP服务器以及处理HTTP请求；拦截器、jinja2模板、URL处理函数注册等  
- -  orm.py: ORM框架  
- -  coroweb.py: 封装aiohttp，即写个装饰器更好的从Request对象获取参数和返回Response对象  
- -  apis.py: 定义几个错误异常类和Page类用于分页  
- -  config_default.py:默认的配置文件信息  
- -  config_override.py:自定义的配置文件信息  
- -  config.py:默认和自定义配置文件合并  
- -  markdown2.py:支持markdown显示的插件  
- -  pymonnitor.py: 用于支持自动检测代码改动重启服务  
++-&nbsp;static:存放静态资源  
++-&nbsp;templates:存放模板文件  
+&nbsp; -&nbsp;app.py: HTTP服务器以及处理HTTP请求；拦截器、jinja2模板、URL处理函数注册等  
+&nbsp; -&nbsp;orm.py: ORM框架  
+&nbsp; -&nbsp;coroweb.py: 封装aiohttp，即写个装饰器更好的从Request对象获取参数和返回Response对象  
+&nbsp; -&nbsp;apis.py: 定义几个错误异常类和Page类用于分页  
+&nbsp; -&nbsp;config\_default.py:默认的配置文件信息  
+&nbsp; -&nbsp;config\_override.py:自定义的配置文件信息  
+&nbsp; -&nbsp;config.py:默认和自定义配置文件合并  
+&nbsp; -&nbsp;markdown2.py:支持markdown显示的插件  
+&nbsp; -&nbsp;pymonnitor.py: 用于支持自动检测代码改动重启服务  
 
 *其中重要的模块有三个：orm.py、coroweb.py、app.py，下面将分别介绍。*
 
