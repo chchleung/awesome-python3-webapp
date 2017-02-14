@@ -6,7 +6,7 @@
 - python3.5 及以上版本
 - aiohttp: 异步http服务器
 - jinja2: python的模板渲染引擎
-- aiomysql: 异步mysql库,参考资料
+- aiomysql: 异步mysql库
 
 ###代码结构：###
 www  

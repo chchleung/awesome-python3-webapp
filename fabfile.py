@@ -83,8 +83,8 @@ def deploy():
         sudo('ln -s %s www' % newdir)
         # chown将指定文件的拥有者改为指定的用户或组。系统管理员经常使用chown命令，在将文件拷贝到另一个用户的名录下之后，让用户拥有使用该文件的权限。 
         # -R 处理指定目录以及其子目录下的所有文件
-        sudo('chown www-data:www-data www')
-        sudo('chown -R www-data:www-data %s' % newdir)
+        sudo('chown ubuntu:ubuntu www')
+        sudo('chown -R ubuntu:ubuntu %s' % newdir)
     # 重启python服务器和nginx服务器
     with settings(warn_only=True):
         sudo('supervisorctl stop awesome')
