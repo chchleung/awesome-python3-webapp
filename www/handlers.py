@@ -274,7 +274,7 @@ def api_blogs(*, page='1'):    # page由html传入
 @get('/api/blog/{id}')
 def api_get_blog(*, id):
     blog = yield from Blog.find(id)
-    print('fanhuile, ',blog.name)
+    logging.info('fanhuile, %s'%blog.name)
     return blog
 
 

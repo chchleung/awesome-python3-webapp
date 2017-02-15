@@ -10,7 +10,7 @@ __author__='chch'
 import os
 import sys
 from imp import reload
-sys.path.append(r'c:/users/志冲/desktop/pytest')
+# sys.path.append(r'c:/users/志冲/desktop/pytest')
 
 #-----------start-----------
 

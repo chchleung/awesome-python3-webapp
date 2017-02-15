@@ -27,7 +27,7 @@ db_password = 'www-data'
 def _now():
     return datetime.now().strftime('%y-%m-%d_%H.%M.%S')
 
-def _current_path():
+def _current_path():   #pls run this file in its path
     return os.path.abspath('.')
 
 
@@ -85,6 +85,8 @@ def deploy():
         # -R 处理指定目录以及其子目录下的所有文件
         sudo('chown ubuntu:ubuntu www')
         sudo('chown -R ubuntu:ubuntu %s' % newdir)
+    with cd('%s/%s'%(_REMOTE_BASE_DIR, 'www')):
+        sudo('dos2unix app.py')
     # 重启python服务器和nginx服务器
     with settings(warn_only=True):
         sudo('supervisorctl stop awesome')
@@ -131,6 +133,7 @@ def rollback():
                 print ('                   %s' % f)
         print ('==================================================')
         print ('')
+        sys.stdout.flush()
         yn = raw_input ('continue? y/N ')
         if yn != 'y' and yn != 'Y':
             print ('Rollback cancelled.')
@@ -138,7 +141,7 @@ def rollback():
         print ('Start rollback...')
         sudo('rm -f www')
         sudo('ln -s %s www' % old)
-        sudo('chown www-data:www-data www')
+        sudo('chown ubuntu:ubuntu www')
         with settings(warn_only=True):
             sudo('supervisorctl stop awesome')
             sudo('supervisorctl start awesome')
@@ -162,6 +165,7 @@ def backup():
 # --------------------------------将服务器上的数据备份到本地-----END
 
 
+
 # --------------------------------将服务器上数据回迁到本地-------START
 def restore2local():
     '''
@@ -183,6 +187,7 @@ def restore2local():
         n = n + 1
     print ('==================================================')
     print ('')
+    sys.stdout.flush()
     try:
         num = int(raw_input ('Restore file: '))
     except ValueError:
@@ -192,11 +197,13 @@ def restore2local():
         print ('Invalid file number.')
         return
     restore_file = files[num]
+    sys.stdout.flush()
     yn = raw_input('Restore file %s: %s? y/N ' % (num, restore_file))
     if yn != 'y' and yn != 'Y':
         print ('Restore cancelled.')
         return
     print ('Start restore to local database...')
+    sys.stdout.flush()
     p = raw_input('Input mysql root password: ')
     sqls = [
         'drop database if exists awesome;',
@@ -209,7 +216,7 @@ def restore2local():
     with lcd(backup_dir):
         local('tar zxvf %s' % restore_file)
     # 将选择的备份恢复到本地数据库
-    local(r'mysql -uroot -p%s awesome < backup/%s' % (p, restore_file[:-7]))
+    local(r'mysql -uroot -p%s --default-character-set=utf8 awesome < backup/%s' % (p, restore_file[:-7]))
     # 删除解压得到的备份文件,仅以压缩包形式储存
     with lcd(backup_dir):
         local('rm -f %s' % restore_file[:-7])

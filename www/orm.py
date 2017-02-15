@@ -31,7 +31,7 @@ def log(sql, args=()):
 # 避免了频繁地打开或关闭数据库连接
 @asyncio.coroutine
 def create_pool(loop, **kw):
-    logging.info("\n\ncreate database connection pool...")
+    logging.info("Start : create database connection pool...")
     global __pool
     # 调用一个子协程来创建全局连接池,create_pool的返回值是一个pool实例对象
     __pool = yield from aiomysql.create_pool(
@@ -74,13 +74,13 @@ def select(sql, args, size=None):
             rs = yield from cur.fetchall()
         yield from cur.close() # 关闭游标
         logging.info("ORM模块：rows return %s" % len(rs))
-        # print('\nORM模块：rs is : ',rs,'\n')
+        # logging.info('\nORM模块：rs is : ',rs,'\n')
         return rs
 
 # 增删改都是对数据库的修改,因此封装到一个函数中
 @asyncio.coroutine
 def execute(sql, args):
-    # print(sql,args)
+    # logging.info(sql,args)
     log(sql,args)
 
     with (yield from __pool) as conn: # 从连接池中取出一条数据库连接
@@ -203,12 +203,12 @@ class ModelMetaclass(type):
             raise RuntimeError("Primary key not found")
         # 从类属性中删除已加入映射字典的键,避免重名
         for k in mappings.keys():
-            # print(k)   #print k 只会打印出key的名字，不会显示值， 说明for 对于 dict 只关注key ,下面pop(keyname) 就能pop整个键值对
+            # logging.info(k)   #logging.info k 只会打印出key的名字，不会显示值， 说明for 对于 dict 只关注key ,下面pop(keyname) 就能pop整个键值对
             attrs.pop(k)
         # 将非主键的属性变形,全部加上反引号，放入escaped_fields中,方便增删改查语句的书写（sql语句貌似不加引号？加了引号会出错？）----注意是反引号,用于区分保留字段
         # 不是必须要加反引号,加反引号是因为有时候定义的表名或者字段名时与系统关键字发生冲突,所以才用反引号引起来,如果能确保不使用关键字就可以不用反引号
         escaped_fields = list(map(lambda f: "`%s`" % f, fields))
-        # print('escaped_fields: ',escaped_fields)
+        # logging.info('escaped_fields: ',escaped_fields)
         attrs["__mappings__"] = mappings # 保存属性和列的映射关系
         attrs["__table__"] = tableName   # 保存表名
         attrs["__primary_key__"] = primaryKey # 保存主键的属性名
@@ -314,7 +314,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 args.extend(limit)  #extend是将一个List的元素放到另一个list后面
             else:
                 raise ValueError("Invalid limit value: %s" % str(limit))
-        # print(sql)
+        # logging.info(sql)
         rs = yield from select(' '.join(sql), args) #没有指定size,因此会fetchall
        
         return [cls(**r) for r in rs]  # 返回一个数组，每个元素就是一个class实例，分别是查询的内容，rs就是sql返回的各个dict表示的行，每个dict作为**kw传入生成各个cls实例
@@ -335,7 +335,7 @@ class Model(dict, metaclass=ModelMetaclass):
     # save、update、remove这三个方法需要管理员权限才能操作，所以不定义为类方法，需要创建实例之后才能调用
     @asyncio.coroutine
     def save(self):
-        # print('using save')
+        # logging.info('using save')
         # 我们在定义__insert__时,将主键放在了末尾.因为属性与值要一一对应,因此通过append的方式将主键加在最后
         args = list(map(self.getValueOrDefault, self.__fields__)) #使用getValueOrDefault方法,可以调用time.time这样的函数来获取值
         args.append(self.getValueOrDefault(self.__primary_key__))
@@ -374,22 +374,22 @@ class Model(dict, metaclass=ModelMetaclass):
 
 # # 创建实例:
 # user = User(id=12345, name='chch', email='chch@python.org', password='password')  
-# print('\nuser: ',user)
-# print('\ndir of this instance: \n',dir(user))
-# print('\nPrint this instance (it\'s a dictionary actually) : \n',user)
+# logging.info('\nuser: ',user)
+# logging.info('\ndir of this instance: \n',dir(user))
+# logging.info('\nlogging.info this instance (it\'s a dictionary actually) : \n',user)
 
 # #查看里面内容
-# print('\nshow the 4 class method of __xx__ :\n')
-# print(user.__select__)
-# print(user.__insert__)
-# print(user.__delete__)
-# print(user.__update__)
+# logging.info('\nshow the 4 class method of __xx__ :\n')
+# logging.info(user.__select__)
+# logging.info(user.__insert__)
+# logging.info(user.__delete__)
+# logging.info(user.__update__)
 
-# print('\nshow the fields : \n')
-# print('__table__ : ', user.__table__)
-# print('__primary_key__ : ', user.__primary_key__)
-# print('__fields__ : ', user.__fields__)
-# print('__mappings__ : \n' ,user.__mappings__)
+# logging.info('\nshow the fields : \n')
+# logging.info('__table__ : ', user.__table__)
+# logging.info('__primary_key__ : ', user.__primary_key__)
+# logging.info('__fields__ : ', user.__fields__)
+# logging.info('__mappings__ : \n' ,user.__mappings__)
 
 
 

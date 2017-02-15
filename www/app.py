@@ -3,14 +3,13 @@
 
 'app.py for awesome-webapp'
 
-print('this import file__name__==',__name__)
+
 
 __author__='chch'
 
 import os
 import sys
-from imp import reload
-sys.path.append(r'c:/users/志冲/desktop/pytest')
+
 
 #logging模块定义了一些函数和模块，可以帮助我们对一个应用程序或库实现一个灵活的事件日志处理系统
 #logging模块可以纪录错误信息，并在错误信息记录完后继续执行
@@ -19,6 +18,12 @@ sys.path.append(r'c:/users/志冲/desktop/pytest')
 #通过basicConfig设置logging的默认level为INFO,修改日志记录等级要重启服务才有效
 
 import logging;logging.basicConfig(level=logging.INFO)
+
+logging.info(sys.version_info)
+logging.info('this import file__name__==%s'%__name__)
+
+
+from config import configs
 
 # asyncio 内置了对异步IO的支持
 # os模块提供了调用操作系统的接口函数
@@ -43,7 +48,6 @@ from coroweb import add_routes,add_static
 # 加载解密从客户端获取的cookie的方式以及服务器设置的cookie名称
 from handlers import cookie2user, COOKIE_NAME  
 
-from config import configs
 
 
 # 这个函数的功能是初始化jinja2模板，配置jinja2的环境-------------------start
@@ -105,7 +109,7 @@ def datetime_filter(t):
 # 这个函数的作用就是当http请求的时候，通过logging.info输出请求的信息，其中包括请求的方法和路径
 async def logger_factory(app,handler):
 	async def logger(request):
-		print('\n通过logger_factory，看看request是什么：', str(request))
+		logging.info('\n通过logger_factory，看看request是什么：%s'%str(request))
 		logging.info('app模块的logger_factory,记录request的路径和方法，然后准备继续将request传入RequestHandler处理---Request: %s %s' %(request.method,request.path))
 		return (await handler(request))  # 日志记录完毕之后, 调用传入的handler继续处理请求
 	return logger
