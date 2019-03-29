@@ -1,6 +1,6 @@
 ##This is a python project for webapp.##
 
-**感谢廖大的教程。**
+**A FORK FROM LIAOXUEFENG。**
 
 ###准备工作：###
 - python3.5 及以上版本
